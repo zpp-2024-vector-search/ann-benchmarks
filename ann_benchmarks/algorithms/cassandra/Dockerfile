@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir cassandra-driver
 
 COPY run_algorithm.py .
-COPY ann_benchmarks/algorithms/cassandra/entrypoint.sh ann_benchmarks/algorithms/cassandra/usr/local/bin/entrypoint.sh
-RUN chmod +x ann_benchmarks/algorithms/cassandra/usr/local/bin/entrypoint.sh
+COPY ann_benchmarks/algorithms/cassandra/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9042
 
