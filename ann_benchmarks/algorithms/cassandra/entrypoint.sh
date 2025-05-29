@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-trap 'kill -TERM $CASS_PID' EXIT
+trap 'kill -TERM $CASS_PID || true' EXIT
 
 docker-entrypoint.sh cassandra -R &
 CASS_PID=$!
