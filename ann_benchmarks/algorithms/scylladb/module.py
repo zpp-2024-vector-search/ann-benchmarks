@@ -52,8 +52,7 @@ class Scylladb(BaseANN):
         hnsw_distance_type = DISTANCE_MAPPING.get(self.metric, "EUCLIDEAN") 
         self.conn.execute(f"""
             CREATE INDEX IF NOT EXISTS {self.index_name}
-                ON {self.keyspace}.{self.table_name}(embedding) USING 'sai'
-                WITH OPTIONS = {{ 'similarity_function': '{hnsw_distance_type}' }};
+            ON {self.keyspace}.{self.table_name} (embedding) USING 'vector_index';
         """)
     
     def _execute_with_retry(self, statement):
