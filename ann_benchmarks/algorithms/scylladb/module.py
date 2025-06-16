@@ -26,6 +26,12 @@ class Scylladb(BaseANN):
         self.cluster = Cluster(['localhost'])
         self.conn = self.cluster.connect()
         self._setup_keyspace()
+        try:
+            print("Vector store process started via cargo run.")
+            subprocess.Popen(["cargo", "run", "--release"], cwd="/home/vector-store")
+        except Exception as e:
+            raise RuntimeError("Failed to start vector store process") 
+
 
     def _setup_keyspace(self):
         self.conn.execute(f"""
@@ -43,13 +49,6 @@ class Scylladb(BaseANN):
         """)
 
     def _create_index(self, ):
-        DISTANCE_MAPPING = {
-            "L2": "EUCLIDEAN",
-            "COSINE": "COSINE",
-            "DOT": "DOT_PRODUCT",
-        }
-
-        hnsw_distance_type = DISTANCE_MAPPING.get(self.metric, "EUCLIDEAN") 
         self.conn.execute(f"""
             CREATE INDEX IF NOT EXISTS {self.index_name}
             ON {self.keyspace}.{self.table_name} (embedding) USING 'vector_index';
@@ -92,12 +91,6 @@ class Scylladb(BaseANN):
                 batch.clear()
         if batch:
             self._execute_with_retry(batch)
-        # Start the ScyllaDB vector store process using cargo run
-        try:
-            print("Vector store process started via cargo run.")
-            subprocess.Popen(["cargo", "run"], cwd="/home/vector-store")
-        except Exception as e:
-            print(f"Failed to start vector store process: {e}")
 
     def set_query_arguments(self, params):
         self._ef_search = params
@@ -116,3 +109,12 @@ class Scylladb(BaseANN):
 
     def get_batch_results(self):
         return self.batch_res
+
+    def done(self):
+        try:
+            subprocess.run(
+                ["pkill", "-f", "cargo run --release"],
+                cwd="/home/vector-store"
+            )
+        except Exception as e:
+            raise RuntimeError("Failed to terminate vector store process")
