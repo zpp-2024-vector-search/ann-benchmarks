@@ -1,0 +1,48 @@
+version: '3.5'
+
+services:
+  scylladb:
+    container_name: my-vector-search-scylla-container
+    image: scylladb/scylladb-releng:2025.3.0-dev-0.20250616.b9e1709b238d-x86_64
+    environment:
+      VECTOR_STORE_IP: 172.42.0.3
+      VECTOR_STORE_PORT: 6080
+    healthcheck:
+      test: ["CMD", "cqlsh", "scylla1", "-e", "select * from system.local WHERE key='local'"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+    networks:
+      public:
+        ipv4_address: 172.42.0.2
+    ports:
+      - "9042:9042"
+      - "19042:19042"
+
+  vector-store:
+    container_name: vector-store-container
+    image: vector-store
+    environment:
+      SCYLLA_USEARCH_URI: 172.42.0.3:6080
+      SCYLLADB_URI: 172.42.0.2:9042
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6080/api/v1/indexes"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+    networks:
+      public:
+        ipv4_address: 172.42.0.3
+    ports:
+      - "6080:6080"
+    depends_on:
+      - scylladb
+
+networks:
+  public:
+    name: ann-benchmark-scylladb
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.42.0.0/16
