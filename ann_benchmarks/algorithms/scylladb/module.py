@@ -8,6 +8,8 @@ from cassandra import WriteTimeout
 from ann_benchmarks.algorithms.base.module import BaseANN
 import subprocess
 
+SCYLLA_DOCKER_IMAGE_TAG = "scylladb/scylladb-releng:2025.3.0-dev-0.20250616.b9e1709b238d-x86_64"
+
 RETRY_LIMIT   = 10         # max attempts per batch (1 original + 2 retries)
 BACKOFF_START = 0.5        # seconds; doubled after every retry
 
@@ -91,6 +93,18 @@ class Scylladb(BaseANN):
                 batch.clear()
         if batch:
             self._execute_with_retry(batch)
+
+        # Start the ScyllaDB vector store process using cargo run
+        try:
+            print("Starting vector store process...")
+            subprocess.Popen(["vector-store"])
+            print("Vector store process started.")
+        except Exception as e:
+            print(f"Failed to start vector store process: {e}")
+        
+        # Give some time for the vector store to index data from ScyllaDB
+        # FIXME: ask the vector store to explicitly wait until that happens
+        sleep(10)
 
     def set_query_arguments(self, params):
         self._ef_search = params
