@@ -19,12 +19,38 @@ services:
       - "9042:9042"
       - "19042:19042"
 
+  opensearch:
+    image: opensearchproject/opensearch:3.0.0
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=ZPP-2025-VectorSearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 4g
+    networks:
+      public:
+        ipv4_address: 172.42.0.4
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+
   vector-store:
     container_name: vector-store-container
     image: vector-store
     environment:
       SCYLLA_USEARCH_URI: 172.42.0.3:6080
       SCYLLADB_URI: 172.42.0.2:9042
+      OPENSEARCH_ADDRESS: 172.42.0.4
+      OPENSEARCH_PORT: 9200
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6080/api/v1/indexes"]
       interval: 1s
@@ -37,6 +63,7 @@ services:
       - "6080:6080"
     depends_on:
       - scylladb
+      - opensearch
 
 networks:
   public:
