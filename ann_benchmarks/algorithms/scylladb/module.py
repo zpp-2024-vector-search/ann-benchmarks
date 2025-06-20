@@ -154,7 +154,7 @@ class Scylladb(BaseANN):
         # Give some time for the vector store to index data from ScyllaDB
         # FIXME: ask the vector store to explicitly wait until that happens
         print("Waiting so that the vector store service has a chance to index data")
-        sleep(10)
+        sleep(120)
 
     def set_query_arguments(self, params):
         self._ef_search = params

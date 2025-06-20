@@ -8,7 +8,7 @@ services:
       VECTOR_STORE_IP: 172.42.0.3
       VECTOR_STORE_PORT: 6080
     healthcheck:
-      test: ["CMD", "cqlsh", "scylla1", "-e", "select * from system.local WHERE key='local'"]
+      test: ["CMD", "cqlsh", "-e", "select * from system.local WHERE key='local'"]
       interval: 1s
       timeout: 5s
       retries: 60
@@ -27,7 +27,7 @@ services:
       - plugins.security.disabled=true
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=ZPP-2025-VectorSearch
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health?wait_for_status=green&timeout=1s"]
       interval: 1s
       timeout: 5s
       retries: 60
@@ -62,8 +62,10 @@ services:
     ports:
       - "6080:6080"
     depends_on:
-      - scylladb
-      - opensearch
+      scylladb:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
 
 networks:
   public:
