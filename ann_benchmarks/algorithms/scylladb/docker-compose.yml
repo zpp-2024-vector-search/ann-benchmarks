@@ -1,0 +1,77 @@
+version: '3.5'
+
+services:
+  scylladb:
+    container_name: my-vector-search-scylla-container
+    image: scylladb/scylladb-releng:2025.3.0-dev-0.20250616.b9e1709b238d-x86_64
+    environment:
+      VECTOR_STORE_IP: 172.42.0.3
+      VECTOR_STORE_PORT: 6080
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "select * from system.local WHERE key='local'"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+    networks:
+      public:
+        ipv4_address: 172.42.0.2
+    ports:
+      - "9042:9042"
+      - "19042:19042"
+
+  opensearch:
+    image: opensearchproject/opensearch:3.0.0
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=ZPP-2025-VectorSearch
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health?wait_for_status=green&timeout=1s"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 4g
+    networks:
+      public:
+        ipv4_address: 172.42.0.4
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+
+  vector-store:
+    container_name: vector-store-container
+    image: vector-store
+    environment:
+      SCYLLA_USEARCH_URI: 172.42.0.3:6080
+      SCYLLADB_URI: 172.42.0.2:9042
+      OPENSEARCH_ADDRESS: 172.42.0.4
+      OPENSEARCH_PORT: 9200
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6080/api/v1/indexes"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+    networks:
+      public:
+        ipv4_address: 172.42.0.3
+    ports:
+      - "6080:6080"
+    depends_on:
+      scylladb:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+
+networks:
+  public:
+    name: ann-benchmark-scylladb
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.42.0.0/16
